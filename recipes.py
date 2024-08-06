@@ -39,7 +39,7 @@ class Recipes:
             pl.col(column_name).str.contains(fr"(?xi){word}")
         )
 
-    def extract_cooking_dificulty_based_on_time_to_cook_in_minutes(
+    def determine_dificulty_based_on_time_to_cook_in_minutes(
         self, df: DataFrame
     ):
 
@@ -54,7 +54,7 @@ class Recipes:
             (pl.col("cookMin") + pl.col("prepMin")).alias("totalMin")
         ])
 
-        df = df.with_columns([
+        result_df = df.with_columns([
             pl
             .when(pl.col("totalMin") == 0).then(pl.lit("Unknown"))
             .when(pl.col("totalMin") > 60).then(pl.lit("Hard"))
@@ -65,12 +65,16 @@ class Recipes:
             .alias("difficulty")
         ])
 
+        return result_df
+
+    def get_average_based_on_difficulty(self, df: DataFrame):
+
         result_df = df.group_by("difficulty").agg(
-            pl.col("totalMin").mean().round(2).alias("AverageTotalTime")
+            pl.col("totalMin").mean().round(2).alias("AverageTotalTime"),
+            pl.col("totalMin").sum().alias("SumOfTotalTime")
         ).sort("difficulty")
 
-        # Ensure we only have the required difficulty
-        # levels - this removes (Unknown column)
+        # Ensure we have the required difficulty levels (remove Unknown row)
         required_difficulties = ["Easy", "Medium", "Hard"]
         result_df = (
             result_df.filter(pl.col("difficulty").is_in(required_difficulties))
@@ -78,11 +82,16 @@ class Recipes:
 
         return result_df
 
-    def generate_results_file(
-        self, folder_name: str, file_name: str, result_df: DataFrame
+    def generate_csv_file(
+        self, folder_name: str, file_name: str,
+        result_df: DataFrame, separator=None
     ):
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
 
         file_path = os.path.join(folder_name, file_name)
-        result_df.write_csv(file_path, separator="|")
+
+        if separator:
+            result_df.write_csv(file_path, separator=separator)
+        else:
+            result_df.write_csv(file_path)

@@ -15,8 +15,13 @@ if __name__ == "__main__":
     recipes = Recipes()
 
     df = recipes.get_df_from_file(file_name, objects_denoted_with_comma=False)
+    # search for chilies and chiles
     df = recipes.search_for_word(df, "ingredients", "chilies|chiles")
-    result_df = (
-        recipes.extract_cooking_dificulty_based_on_time_to_cook_in_minutes(df)
+
+    difficulty_df = (
+        recipes.determine_dificulty_based_on_time_to_cook_in_minutes(df)
     )
-    recipes.generate_results_file("recipes-etl", "Results.csv", result_df)
+    recipes.generate_csv_file("recipes-etl", "Chilies.csv", difficulty_df)
+
+    average_df = recipes.get_average_based_on_difficulty(difficulty_df)
+    recipes.generate_csv_file("recipes-etl", "Results.csv", average_df, "|")
